@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>API Health Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<h1>🚀 API Health Dashboard (DevOps)</h1>
+
+<!-- SUMMARY -->
+<div class="summary">
+    <div id="total">Total: 0</div>
+    <div id="up">UP: 0</div>
+    <div id="down">DOWN: 0</div>
+</div>
+
+<!-- INPUT -->
+<div class="form">
+    <input id="name" placeholder="API Name">
+    <input id="url" placeholder="API URL">
+    <button onclick="addAPI()">Add API</button>
+</div>
+
+<p id="lastUpdated">Last Updated: -</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>API</th>
+            <th>Status</th>
+            <th>Response Time (ms)</th>
+            <th>Status Code</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+
+    <tbody id="table"></tbody>
+</table>
+
+<script>
+
+// 🔄 LOAD DATA
+async function loadData() {
+    const res = await fetch("/status");
+    const data = await res.json();
+
+    let html = "";
+    let up = 0;
+    let down = 0;
+
+    data.forEach(api => {
+        if (api.status === "UP") up++;
+        else down++;
+
+        html += `
+        <tr>
+            <td>${api.name}</td>
+            <td style="color:${api.status === 'UP' ? 'green' : 'red'}">
+                <b>${api.status}</b>
+            </td>
+            <td>${api.response_time}</td>
+            <td>${api.status_code}</td>
+            <td><button onclick="deleteAPI('${api.name}')">Delete</button></td>
+        </tr>
+        `;
+    });
+
+    document.getElementById("table").innerHTML = html;
+
+    document.getElementById("total").innerText = "Total: " + data.length;
+    document.getElementById("up").innerText = "UP: " + up;
+    document.getElementById("down").innerText = "DOWN: " + down;
+
+    document.getElementById("lastUpdated").innerText =
+        "Last Updated: " + new Date().toLocaleTimeString();
+}
+
+
+// 🚀 ADD API (NO FRONTEND FETCH CHECK → FIXED)
+async function addAPI() {
+    let name = document.getElementById("name").value;
+    let url = document.getElementById("url").value;
+
+    // ❌ EMPTY CHECK
+    if (!name || !url) {
+        alert("⚠️ Please enter API Name and URL");
+        return;
+    }
+
+    // ❌ FORMAT CHECK ONLY
+    try {
+        new URL(url);
+    } catch {
+        alert("❌ Invalid URL format");
+        return;
+    }
+
+    // SEND TO BACKEND ONLY
+    const response = await fetch("/add_api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, url })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+        alert("❌ " + result.error);
+        return;
+    }
+
+    alert("✅ API Added Successfully!");
+
+    document.getElementById("name").value = "";
+    document.getElementById("url").value = "";
+
+    loadData();
+}
+
+
+// ❌ DELETE API
+async function deleteAPI(name) {
+    await fetch("/delete_api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+    });
+
+    loadData();
+}
+
+
+// 🔄 AUTO REFRESH
+setInterval(loadData, 5000);
+loadData();
+
+</script>
+
+</body>
+</html>
