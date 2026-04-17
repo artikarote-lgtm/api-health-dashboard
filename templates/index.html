@@ -4,6 +4,10 @@
 <head>
     <title>API Health Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
+
+    <!-- Chart JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
 
 <body>
@@ -39,8 +43,18 @@
 
     <tbody id="table"></tbody>
 </table>
+<h2>📊 Response Time Graph</h2>
+<img src="/static/chart.png" width="600">
+
+<!-- GRAPH -->
+<h2>📊 Response Time Graph</h2>
+<canvas id="chart" width="800" height="300"></canvas>
 
 <script>
+
+let chart;
+let chartData = [];
+let labels = [];
 
 // 🔄 LOAD DATA
 async function loadData() {
@@ -66,6 +80,15 @@ async function loadData() {
             <td><button onclick="deleteAPI('${api.name}')">Delete</button></td>
         </tr>
         `;
+
+        // Graph data
+        chartData.push(api.response_time);
+        labels.push(api.name);
+
+        if (chartData.length > 10){
+            chartData.shift();
+            labels.shift();
+        }
     });
 
     document.getElementById("table").innerHTML = html;
@@ -76,21 +99,48 @@ async function loadData() {
 
     document.getElementById("lastUpdated").innerText =
         "Last Updated: " + new Date().toLocaleTimeString();
+
+    updateChart();
 }
 
 
-// 🚀 ADD API (NO FRONTEND FETCH CHECK → FIXED)
+// 📊 UPDATE GRAPH
+function updateChart(){
+
+    if(chart){
+        chart.destroy();
+    }
+
+    const ctx = document.getElementById('chart');
+
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Response Time (ms)',
+                data: chartData,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true
+        }
+    });
+
+}
+
+
+// 🚀 ADD API
 async function addAPI() {
     let name = document.getElementById("name").value;
     let url = document.getElementById("url").value;
 
-    // ❌ EMPTY CHECK
     if (!name || !url) {
         alert("⚠️ Please enter API Name and URL");
         return;
     }
 
-    // ❌ FORMAT CHECK ONLY
     try {
         new URL(url);
     } catch {
@@ -98,7 +148,6 @@ async function addAPI() {
         return;
     }
 
-    // SEND TO BACKEND ONLY
     const response = await fetch("/add_api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
