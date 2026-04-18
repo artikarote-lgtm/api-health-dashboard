@@ -1,17 +1,28 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 from flask_mail import Mail, Message
 import requests
 import time
 from urllib.parse import urlparse
+import matplotlib
+
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import os
 
 app = Flask(__name__)
+app.secret_key = "supersecretkey"
+
+# LOGIN CREDENTIALS
+USERNAME = "admin"
+PASSWORD = "admin123"
+
+# EMAIL CONFIGURATION
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your_email@gmail.com'
-app.config['MAIL_PASSWORD'] = 'your_app_password'
+app.config['MAIL_USERNAME'] = 'arti.karote@cumminscollege.in'
+app.config['MAIL_PASSWORD'] = 'eddg vtqy lvwl uybj'
 
 mail = Mail(app)
 
@@ -21,10 +32,35 @@ APIS = {
     "JSONPlaceholder": "https://jsonplaceholder.typicode.com/posts/1"
 }
 
-# Store response time history
 response_history = []
+uptime_data = {}
 
-# URL FORMAT CHECK
+
+# LOGIN ROUTES
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if username == USERNAME and password == PASSWORD:
+            session["user"] = username
+            return redirect("/")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
+    return redirect("/login")
+
+
+def login_required():
+    return "user" in session
+
+
+# URL CHECK
 def is_valid_url(url):
     try:
         result = urlparse(url)
@@ -33,7 +69,28 @@ def is_valid_url(url):
         return False
 
 
-# API CHECK (REAL VALIDATION)
+# EMAIL ALERT
+def send_alert(api_name, url):
+    try:
+        msg = Message(
+            subject=f"🚨 API DOWN ALERT: {api_name}",
+            sender=app.config['MAIL_USERNAME'],
+            recipients=['arti.karote@cumminscollege.in']
+        )
+
+        msg.body = f"""
+API DOWN ALERT
+
+API Name: {api_name}
+URL: {url}
+"""
+
+        mail.send(msg)
+
+    except Exception as e:
+        print("Email failed:", e)
+
+
 def check_api(name, url):
     try:
         start = time.time()
@@ -42,10 +99,20 @@ def check_api(name, url):
 
         status = "UP" if r.status_code < 400 else "DOWN"
 
-        # store response time
+        if name not in uptime_data:
+            uptime_data[name] = {"up": 0, "total": 0}
+
+        uptime_data[name]["total"] += 1
+
+        if status == "UP":
+            uptime_data[name]["up"] += 1
+
+        uptime = round(
+            (uptime_data[name]["up"] / uptime_data[name]["total"]) * 100, 2
+        )
+
         response_history.append(response_time)
 
-        # keep last 20 values
         if len(response_history) > 20:
             response_history.pop(0)
 
@@ -54,82 +121,62 @@ def check_api(name, url):
             "status": status,
             "response_time": response_time,
             "status_code": r.status_code,
+            "uptime": uptime,
             "time": time.strftime("%H:%M:%S")
         }
 
     except:
-        send_alert(name, url)   # 🔴 NEW LINE ADDED
+        send_alert(name, url)
+
         return {
             "name": name,
             "status": "DOWN",
             "response_time": 0,
             "status_code": "ERROR",
+            "uptime": 0,
             "time": time.strftime("%H:%M:%S")
         }
 
 
-# GENERATE CHART
 def generate_chart():
     if not response_history:
         return
 
     plt.figure()
-    plt.plot(response_history, marker='o')
-    plt.title("API Response Time")
-    plt.xlabel("Requests")
-    plt.ylabel("Response Time (ms)")
-    
-    if not os.path.exists("static"):
-        os.makedirs("static")
-
+    plt.plot(response_history)
     plt.savefig("static/chart.png")
     plt.close()
 
 
 @app.route("/")
 def home():
+    if not login_required():
+        return redirect("/login")
+
     return render_template("index.html")
 
 
 @app.route("/status")
 def status():
-    data = [check_api(name, url) for name, url in APIS.items()]
-    
-    # Generate graph
-    generate_chart()
+    if not login_required():
+        return redirect("/login")
 
+    data = [check_api(name, url) for name, url in APIS.items()]
+    generate_chart()
     return jsonify(data)
 
 
-# ➕ ADD API
 @app.route("/add_api", methods=["POST"])
 def add_api():
     data = request.json
     name = data.get("name")
     url = data.get("url")
 
-    if not name or not url:
-        return jsonify({"error": "Missing data"}), 400
-
-    # format check
-    if not is_valid_url(url):
-        return jsonify({"error": "Invalid URL format"}), 400
-
-    # REAL API CHECK
-    try:
-        r = requests.get(url, timeout=5)
-
-        if r.status_code >= 500:
-            return jsonify({"error": "API server error"}), 400
-
-    except:
-        return jsonify({"error": "API not reachable"}), 400
-
     APIS[name] = url
-    return jsonify({"message": "API added successfully"})
+
+    return jsonify({"message": "added"})
 
 
-# ❌ DELETE API
 @app.route("/delete_api", methods=["POST"])
 def delete_api():
     data = request.json
@@ -141,34 +188,5 @@ def delete_api():
     return jsonify({"message": "deleted"})
 
 
-# GRAPH ROUTE
-@app.route("/chart")
-def chart():
-    return render_template("chart.html")
-
-def send_alert(api_name, url):
-    try:
-        msg = Message(
-            subject=f"🚨 API DOWN ALERT: {api_name}",
-            sender=app.config['MAIL_USERNAME'],
-            recipients=['your_email@gmail.com']
-        )
-
-        msg.body = f"""
-        ALERT!
-
-        API Name: {api_name}
-        URL: {url}
-        Status: DOWN ❌
-
-        Please check immediately.
-        """
-
-        mail.send(msg)
-
-    except Exception as e:
-        print("Email failed:", e)
-
-
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True)

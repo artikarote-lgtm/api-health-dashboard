@@ -4,24 +4,67 @@
 <head>
     <title>API Health Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
-
-    <!-- Chart JS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+/* Dark Mode Toggle Button */
+
+.toggle {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+/* Dark Mode Styles */
+
+.dark {
+    background: #1e1e2f;
+    color: white;
+}
+
+.dark table {
+    background: #2a2a40;
+    color: white;
+}
+
+.dark th, .dark td {
+    border-color: #444;
+}
+
+.dark input {
+    background: #2a2a40;
+    color: white;
+    border: 1px solid #444;
+}
+
+.dark button {
+    background: #6c63ff;
+    color: white;
+}
+
+.dark .summary div {
+    background: #2a2a40;
+}
+
+</style>
 
 </head>
 
 <body>
 
+<div class="toggle" onclick="toggleDark()">🌙</div>
+
 <h1>🚀 API Health Dashboard (DevOps)</h1>
 
-<!-- SUMMARY -->
 <div class="summary">
     <div id="total">Total: 0</div>
     <div id="up">UP: 0</div>
     <div id="down">DOWN: 0</div>
 </div>
 
-<!-- INPUT -->
 <div class="form">
     <input id="name" placeholder="API Name">
     <input id="url" placeholder="API URL">
@@ -37,26 +80,44 @@
             <th>Status</th>
             <th>Response Time (ms)</th>
             <th>Status Code</th>
+            <th>Uptime %</th>
+            <th>Time</th>
             <th>Action</th>
         </tr>
     </thead>
 
     <tbody id="table"></tbody>
 </table>
-<h2>📊 Response Time Graph</h2>
-<img src="/static/chart.png" width="600">
 
-<!-- GRAPH -->
-<h2>📊 Response Time Graph</h2>
+
+
+<h2>📊 Live Graph</h2>
 <canvas id="chart" width="800" height="300"></canvas>
 
 <script>
+
+/* Dark Mode Toggle */
+
+function toggleDark() {
+    document.body.classList.toggle("dark")
+
+    if(document.body.classList.contains("dark")){
+        localStorage.setItem("darkMode","enabled")
+    } else {
+        localStorage.setItem("darkMode","disabled")
+    }
+}
+
+/* Apply saved dark mode */
+
+if(localStorage.getItem("darkMode") === "enabled"){
+    document.body.classList.add("dark")
+}
 
 let chart;
 let chartData = [];
 let labels = [];
 
-// 🔄 LOAD DATA
 async function loadData() {
     const res = await fetch("/status");
     const data = await res.json();
@@ -66,6 +127,7 @@ async function loadData() {
     let down = 0;
 
     data.forEach(api => {
+
         if (api.status === "UP") up++;
         else down++;
 
@@ -77,11 +139,12 @@ async function loadData() {
             </td>
             <td>${api.response_time}</td>
             <td>${api.status_code}</td>
+            <td>${api.uptime}%</td>
+            <td>${api.time}</td>
             <td><button onclick="deleteAPI('${api.name}')">Delete</button></td>
         </tr>
         `;
 
-        // Graph data
         chartData.push(api.response_time);
         labels.push(api.name);
 
@@ -89,6 +152,7 @@ async function loadData() {
             chartData.shift();
             labels.shift();
         }
+
     });
 
     document.getElementById("table").innerHTML = html;
@@ -103,8 +167,6 @@ async function loadData() {
     updateChart();
 }
 
-
-// 📊 UPDATE GRAPH
 function updateChart(){
 
     if(chart){
@@ -130,21 +192,13 @@ function updateChart(){
 
 }
 
-
-// 🚀 ADD API
 async function addAPI() {
+
     let name = document.getElementById("name").value;
     let url = document.getElementById("url").value;
 
     if (!name || !url) {
-        alert("⚠️ Please enter API Name and URL");
-        return;
-    }
-
-    try {
-        new URL(url);
-    } catch {
-        alert("❌ Invalid URL format");
+        alert("Enter API name and URL");
         return;
     }
 
@@ -154,23 +208,9 @@ async function addAPI() {
         body: JSON.stringify({ name, url })
     });
 
-    const result = await response.json();
-
-    if (!response.ok) {
-        alert("❌ " + result.error);
-        return;
-    }
-
-    alert("✅ API Added Successfully!");
-
-    document.getElementById("name").value = "";
-    document.getElementById("url").value = "";
-
     loadData();
 }
 
-
-// ❌ DELETE API
 async function deleteAPI(name) {
     await fetch("/delete_api", {
         method: "POST",
@@ -181,8 +221,6 @@ async function deleteAPI(name) {
     loadData();
 }
 
-
-// 🔄 AUTO REFRESH
 setInterval(loadData, 5000);
 loadData();
 
