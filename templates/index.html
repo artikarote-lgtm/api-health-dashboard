@@ -2,51 +2,168 @@
 <html>
 
 <head>
-    <title>API Health Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>API Health Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
-/* Dark Mode Toggle Button */
-
-.toggle {
-    position: absolute;
-    right: 20px;
-    top: 20px;
-    cursor: pointer;
-    font-size: 20px;
+body{
+font-family: Arial, Helvetica, sans-serif;
+margin:20px;
+background:#f5f6fa;
 }
 
-/* Dark Mode Styles */
+.tabs{
+display:flex;
+gap:10px;
+margin:20px 0;
+}
+
+.tabs button{
+padding:10px 15px;
+background:#6c63ff;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+.toggle {
+position:absolute;
+right:20px;
+top:20px;
+cursor:pointer;
+font-size:20px;
+}
+
+.summary{
+display:flex;
+gap:20px;
+margin-bottom:20px;
+flex-wrap:wrap;
+}
+
+.summary div{
+background:white;
+padding:15px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+min-width:150px;
+}
+
+.report-summary{
+display:flex;
+gap:20px;
+margin:20px 0;
+flex-wrap:wrap;
+}
+
+.report-summary div{
+background:white;
+padding:15px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+min-width:150px;
+}
+
+.status{
+padding:5px 12px;
+border-radius:20px;
+color:white;
+font-weight:bold;
+}
+
+.up{
+background:#2ecc71;
+}
+
+.down{
+background:#e74c3c;
+}
+
+.slow{
+background:#f39c12;
+}
+
+.form{
+margin:20px 0;
+}
+
+input,button,select{
+padding:10px;
+border-radius:5px;
+border:1px solid #ccc;
+}
+
+button{
+background:#6c63ff;
+color:white;
+border:none;
+cursor:pointer;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+th,td{
+padding:10px;
+border:1px solid #ddd;
+text-align:center;
+}
+
+th{
+background:#6c63ff;
+color:white;
+}
+
+.filters{
+margin:20px 0;
+display:flex;
+gap:15px;
+flex-wrap:wrap;
+}
+
+.chart-grid{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:30px;
+margin-top:20px;
+}
+
+.chart-card{
+width:600px;
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.chart-card canvas{
+height:250px !important;
+}
 
 .dark {
-    background: #1e1e2f;
-    color: white;
+background:#1e1e2f;
+color:white;
 }
 
 .dark table {
-    background: #2a2a40;
-    color: white;
+background:#2a2a40;
+color:white;
 }
 
-.dark th, .dark td {
-    border-color: #444;
+.dark .summary div,
+.dark .report-summary div{
+background:#2a2a40;
 }
 
-.dark input {
-    background: #2a2a40;
-    color: white;
-    border: 1px solid #444;
-}
-
-.dark button {
-    background: #6c63ff;
-    color: white;
-}
-
-.dark .summary div {
-    background: #2a2a40;
+.dark .chart-card{
+background:#2a2a40;
 }
 
 </style>
@@ -57,172 +174,335 @@
 
 <div class="toggle" onclick="toggleDark()">🌙</div>
 
-<h1>🚀 API Health Dashboard (DevOps)</h1>
+<h1>🚀 API Health Dashboard</h1>
+
+<div class="tabs">
+<button onclick="showTab('dashboard')">🏠 Dashboard</button>
+<button onclick="showTab('graphs')">📊 Graphs</button>
+<button onclick="showTab('reports')">📑 Reports</button>
+</div>
+
+<div id="dashboard">
 
 <div class="summary">
-    <div id="total">Total: 0</div>
-    <div id="up">UP: 0</div>
-    <div id="down">DOWN: 0</div>
+<div id="total">Total:0</div>
+<div id="up">UP:0</div>
+<div id="down">DOWN:0</div>
+<div id="avg">Avg Response:0</div>
+<div id="uptime">Uptime:0%</div>
 </div>
 
 <div class="form">
-    <input id="name" placeholder="API Name">
-    <input id="url" placeholder="API URL">
-    <button onclick="addAPI()">Add API</button>
+<input id="name" placeholder="API Name">
+<input id="url" placeholder="API URL">
+<button id="addBtn" onclick="addAPI()">Add API</button>
 </div>
 
-<p id="lastUpdated">Last Updated: -</p>
+<p id="lastUpdated">Last Updated:-</p>
+
+<div class="filters">
+
+<select id="statusFilter">
+<option value="ALL">ALL</option>
+<option value="UP">UP</option>
+<option value="DOWN">DOWN</option>
+</select>
+
+<input
+type="text"
+id="searchFilter"
+placeholder="Search API">
+
+<select id="sortFilter">
+<option value="">Sort</option>
+<option value="response">Response</option>
+<option value="uptime">Uptime</option>
+</select>
+
+<button onclick="applyFilters()">Apply</button>
+
+</div>
 
 <table>
-    <thead>
-        <tr>
-            <th>API</th>
-            <th>Status</th>
-            <th>Response Time (ms)</th>
-            <th>Status Code</th>
-            <th>Uptime %</th>
-            <th>Time</th>
-            <th>Action</th>
-        </tr>
-    </thead>
+<thead>
+<tr>
+<th>API</th>
+<th>Status</th>
+<th>Response</th>
+<th>Speed</th>
+<th>Code</th>
+<th>Uptime</th>
+<th>Last Failure</th>
+<th>Time</th>
+<th>Action</th>
+</tr>
+</thead>
 
-    <tbody id="table"></tbody>
+<tbody id="table"></tbody>
+
 </table>
 
+</div>
 
+<div id="graphs" style="display:none">
 
-<h2>📊 Live Graph</h2>
-<canvas id="chart" width="800" height="300"></canvas>
+<div class="chart-grid">
+
+<div class="chart-card">
+<h3>📊 API Status Overview</h3>
+<canvas id="statusPie"></canvas>
+</div>
+
+<div class="chart-card">
+<h3>📊 Response Time</h3>
+<canvas id="chart"></canvas>
+</div>
+
+<div class="chart-card">
+<h3>📊 Uptime</h3>
+<canvas id="uptimeChart"></canvas>
+</div>
+
+</div>
+
+</div>
+
+<div id="reports" style="display:none">
+
+<h2>📑 Reports</h2>
+
+<div class="filters">
+<input type="date" id="startDate">
+<input type="date" id="endDate">
+<button onclick="filterReport()">Generate Report</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>API</th>
+<th>Status</th>
+<th>Response</th>
+<th>Uptime</th>
+<th>Date</th>
+</tr>
+</thead>
+
+<tbody id="reportTable"></tbody>
+
+</table>
+
+</div>
 
 <script>
 
-/* Dark Mode Toggle */
-
-function toggleDark() {
-    document.body.classList.toggle("dark")
-
-    if(document.body.classList.contains("dark")){
-        localStorage.setItem("darkMode","enabled")
-    } else {
-        localStorage.setItem("darkMode","disabled")
-    }
+function showTab(tab){
+document.getElementById("dashboard").style.display="none";
+document.getElementById("graphs").style.display="none";
+document.getElementById("reports").style.display="none";
+document.getElementById(tab).style.display="block";
 }
 
-/* Apply saved dark mode */
-
-if(localStorage.getItem("darkMode") === "enabled"){
-    document.body.classList.add("dark")
+function toggleDark(){
+document.body.classList.toggle("dark")
 }
 
 let chart;
-let chartData = [];
-let labels = [];
+let pieChart;
+let uptimeChart;
 
-async function loadData() {
-    const res = await fetch("/status");
-    const data = await res.json();
-
-    let html = "";
-    let up = 0;
-    let down = 0;
-
-    data.forEach(api => {
-
-        if (api.status === "UP") up++;
-        else down++;
-
-        html += `
-        <tr>
-            <td>${api.name}</td>
-            <td style="color:${api.status === 'UP' ? 'green' : 'red'}">
-                <b>${api.status}</b>
-            </td>
-            <td>${api.response_time}</td>
-            <td>${api.status_code}</td>
-            <td>${api.uptime}%</td>
-            <td>${api.time}</td>
-            <td><button onclick="deleteAPI('${api.name}')">Delete</button></td>
-        </tr>
-        `;
-
-        chartData.push(api.response_time);
-        labels.push(api.name);
-
-        if (chartData.length > 10){
-            chartData.shift();
-            labels.shift();
-        }
-
-    });
-
-    document.getElementById("table").innerHTML = html;
-
-    document.getElementById("total").innerText = "Total: " + data.length;
-    document.getElementById("up").innerText = "UP: " + up;
-    document.getElementById("down").innerText = "DOWN: " + down;
-
-    document.getElementById("lastUpdated").innerText =
-        "Last Updated: " + new Date().toLocaleTimeString();
-
-    updateChart();
+let currentFilters={
+status:"ALL",
+search:"",
+sort:""
 }
 
-function updateChart(){
+async function loadData(){
 
-    if(chart){
-        chart.destroy();
-    }
+const res=await fetch("/status")
+let data=await res.json()
 
-    const ctx = document.getElementById('chart');
+window.apiData=data
 
-    chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Response Time (ms)',
-                data: chartData,
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true
-        }
-    });
+updateSummary(data)
+filterAndRender()
+updateCharts(data)
+
+let now=new Date()
+document.getElementById("lastUpdated").innerText=
+"Last Updated: "+now.toLocaleTimeString()
 
 }
 
-async function addAPI() {
+function updateSummary(data){
 
-    let name = document.getElementById("name").value;
-    let url = document.getElementById("url").value;
+let total=data.length
+let up=data.filter(a=>a.status=="UP").length
+let down=total-up
 
-    if (!name || !url) {
-        alert("Enter API name and URL");
-        return;
-    }
+let avg=Math.round(
+ data.reduce((a,b)=>a+b.response_time,0)/total || 0
+)
 
-    const response = await fetch("/add_api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, url })
-    });
+let uptime=Math.round(
+ data.reduce((a,b)=>a+b.uptime,0)/total || 0
+)
 
-    loadData();
+document.getElementById("total").innerText="Total:"+total
+document.getElementById("up").innerText="UP:"+up
+document.getElementById("down").innerText="DOWN:"+down
+document.getElementById("avg").innerText="Avg Response:"+avg
+document.getElementById("uptime").innerText="Uptime:"+uptime+"%"
+
 }
 
-async function deleteAPI(name) {
-    await fetch("/delete_api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name })
-    });
+function applyFilters(){
 
-    loadData();
+currentFilters.status=document.getElementById("statusFilter").value
+currentFilters.search=document.getElementById("searchFilter").value.toLowerCase()
+currentFilters.sort=document.getElementById("sortFilter").value
+
+filterAndRender()
+
 }
 
-setInterval(loadData, 5000);
-loadData();
+function filterAndRender(){
+
+let data=[...window.apiData]
+
+if(currentFilters.status!="ALL"){
+data=data.filter(api=>api.status==currentFilters.status)
+}
+
+if(currentFilters.search){
+data=data.filter(api=>api.name.toLowerCase().includes(currentFilters.search))
+}
+
+if(currentFilters.sort=="response"){
+data.sort((a,b)=>a.response_time-b.response_time)
+}
+
+if(currentFilters.sort=="uptime"){
+data.sort((a,b)=>b.uptime-a.uptime)
+}
+
+renderTable(data)
+
+}
+
+function renderTable(data){
+
+let html=""
+let reportHtml=""
+
+data.forEach(api=>{
+
+let speed="Fast"
+let speedClass="up"
+
+if(api.response_time>1500){
+speed="Slow"
+speedClass="slow"
+}
+
+let today=new Date().toISOString().split("T")[0]
+
+html+=`
+<tr>
+<td>${api.name}</td>
+<td><span class="status ${api.status=='UP'?'up':'down'}">${api.status}</span></td>
+<td>${api.response_time}</td>
+<td><span class="status ${speedClass}">${speed}</span></td>
+<td>${api.status_code}</td>
+<td>${api.uptime}%</td>
+<td>${api.last_failure || "Never"}</td>
+<td>${api.time}</td>
+<td><button onclick="deleteAPI('${api.name}')">Delete</button></td>
+</tr>
+`
+
+reportHtml+=`
+<tr data-date="${today}">
+<td>${api.name}</td>
+<td>${api.status}</td>
+<td>${api.response_time}</td>
+<td>${api.uptime}</td>
+<td>${today}</td>
+</tr>
+`
+
+})
+
+document.getElementById("table").innerHTML=html
+document.getElementById("reportTable").innerHTML=reportHtml
+
+}
+
+function filterReport(){
+
+let start=document.getElementById("startDate").value
+let end=document.getElementById("endDate").value
+
+let rows=document.querySelectorAll("#reportTable tr")
+
+rows.forEach(row=>{
+
+let rowDate=row.getAttribute("data-date")
+let show=true
+
+if(start && rowDate < start) show=false
+if(end && rowDate > end) show=false
+
+row.style.display=show?"":"none"
+
+})
+
+}
+
+async function addAPI(){
+
+let btn=document.getElementById("addBtn")
+btn.disabled=true
+
+let name=document.getElementById("name").value
+let url=document.getElementById("url").value
+
+if(!name || !url){
+alert("Enter API name and URL")
+btn.disabled=false
+return
+}
+
+await fetch("/add_api",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({name,url})
+})
+
+btn.disabled=false
+
+loadData()
+
+}
+
+async function deleteAPI(name){
+
+await fetch("/delete_api",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({name})
+})
+
+loadData()
+
+}
+
+setInterval(loadData,5000)
+loadData()
 
 </script>
 

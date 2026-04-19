@@ -29,7 +29,11 @@ mail = Mail(app)
 APIS = {
     "FakeStore": "https://fakestoreapi.com/products/1",
     "GitHub": "https://api.github.com",
-    "JSONPlaceholder": "https://jsonplaceholder.typicode.com/posts/1"
+    "JSONPlaceholder": "https://jsonplaceholder.typicode.com/posts/1",
+    "Stack Overflow": "https://api.stackexchange.com/2.3/questions?order=desc&sort=activity&site=stackoverflow",
+    "DummyJSON": "https://dummyjson.com/products",
+    "Weather": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current_weather=true",
+    "Crypto": "https://api.coindesk.com/v1/bpi/currentprice.json"
 }
 
 response_history = []
