@@ -438,6 +438,81 @@ document.getElementById("reportTable").innerHTML=reportHtml
 
 }
 
+/* -------------------- FIXED CHART FUNCTION -------------------- */
+
+function updateCharts(data){
+
+let names=data.map(a=>a.name)
+let response=data.map(a=>a.response_time)
+let uptime=data.map(a=>a.uptime)
+
+let up=data.filter(a=>a.status=="UP").length
+let down=data.filter(a=>a.status=="DOWN").length
+
+/* Destroy old charts */
+
+if(chart) chart.destroy()
+if(pieChart) pieChart.destroy()
+if(uptimeChart) uptimeChart.destroy()
+
+/* PIE CHART */
+
+pieChart=new Chart(
+document.getElementById("statusPie"),
+{
+type:"pie",
+data:{
+labels:["UP","DOWN"],
+datasets:[{
+data:[up,down],
+backgroundColor:["#2ecc71","#e74c3c"]
+}]
+}
+})
+
+/* RESPONSE CHART */
+
+chart=new Chart(
+document.getElementById("chart"),
+{
+type:"bar",
+data:{
+labels:names,
+datasets:[{
+label:"Response Time",
+data:response,
+backgroundColor:"#6c63ff"
+}]
+},
+options:{
+responsive:true
+}
+})
+
+/* UPTIME CHART */
+
+uptimeChart=new Chart(
+document.getElementById("uptimeChart"),
+{
+type:"line",
+data:{
+labels:names,
+datasets:[{
+label:"Uptime %",
+data:uptime,
+borderColor:"#2ecc71",
+fill:false
+}]
+},
+options:{
+responsive:true
+}
+})
+
+}
+
+/* ------------------------------------------------------------- */
+
 function filterReport(){
 
 let start=document.getElementById("startDate").value

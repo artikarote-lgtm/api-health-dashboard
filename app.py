@@ -33,9 +33,19 @@ APIS = {
     "Stack Overflow": "https://api.stackexchange.com/2.3/questions?order=desc&sort=activity&site=stackoverflow",
     "DummyJSON": "https://dummyjson.com/products",
     "Weather": "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current_weather=true",
-    "Crypto": "https://api.coindesk.com/v1/bpi/currentprice.json"
-}
+    "Crypto": "https://api.coindesk.com/v1/bpi/currentprice.json",
 
+    # Added APIs
+    "Dog API": "https://dog.ceo/api/breeds/image/random",
+    "Cat API": "https://api.thecatapi.com/v1/images/search",
+    "IP Info": "https://ipinfo.io/json",
+    "Age Predictor": "https://api.agify.io/?name=arti",
+    "Gender Predictor": "https://api.genderize.io/?name=arti",
+    "Country Predictor": "https://api.nationalize.io/?name=arti",
+    "Advice API": "https://api.adviceslip.com/advice",
+    "Bored API": "https://www.boredapi.com/api/activity",
+    "Bitcoin Price": "https://api.coinbase.com/v2/prices/spot?currency=USD"
+}
 response_history = []
 uptime_data = {}
 
